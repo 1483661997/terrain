@@ -96,6 +96,7 @@ def contour_to_dem(contour_shp_path, dem_output_path, pixel_size):
     contour_ds = None
     target_ds = None
 
+
 if __name__ == "__main__":
     dem_to_contour(dem_path='./../dataset/ALPSMLC30_N034E082_DSM.tif',
                    contour_shp_path='./../dataset/result/output_contours2.shp',

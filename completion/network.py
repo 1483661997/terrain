@@ -154,10 +154,18 @@ class PatchDiscriminator(nn.Module):
         super(PatchDiscriminator, self).__init__()
         layers = []
         # 输入层，不使用批归一化
+        # layers.append(
+        #     nn.Sequential(
+        #         nn.Conv2d(in_channels, features[0], kernel_size=4, stride=2, padding=1),
+        #         nn.LeakyReLU(0.2, inplace=True)
+        #     )
+        # )
         layers.append(
             nn.Sequential(
-                nn.Conv2d(in_channels, features[0], kernel_size=4, stride=2, padding=1),
-                nn.LeakyReLU(0.2, inplace=True)
+                nn.Conv2d(in_channels, features[0], kernel_size=4, stride=2, padding=1, bias=False),
+                nn.BatchNorm2d(features[0]),
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Dropout(0.5)  # 添加 Dropout，概率可调整
             )
         )
 
@@ -185,7 +193,8 @@ class PatchDiscriminator(nn.Module):
 
 
 # 定义损失函数
-criterion_GAN = nn.BCEWithLogitsLoss()  # 对抗性损失
+# criterion_GAN = nn.BCEWithLogitsLoss()  # 对抗性损失
+criterion_GAN = nn.MSELoss()
 criterion_L1 = nn.L1Loss()  # 重建损失
 lambda_L1 = 100  # L1 损失的权重
 

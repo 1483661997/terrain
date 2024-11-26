@@ -1,8 +1,11 @@
 import torch
 
-from completion.network import *
-from  dataloader import DataLoader
+from network import *
+from dataloader import DataLoader
 import matplotlib
+
+from terrain.completion.network import device
+
 matplotlib.use('TkAgg')
 
 
@@ -55,13 +58,13 @@ def main():
 
             # 生成器的对抗性损失
             valid_label = torch.ones_like(pred_fake, device=device)
-            loss_G_GAN = criterion_GAN(pred_fake, valid_label)
+            loss_g_gan = criterion_GAN(pred_fake, valid_label)
 
             # 生成器的 L1 损失（与真实图像的差异）
-            loss_G_L1 = criterion_L1(fake_dem, real_dem) * lambda_L1
+            loss_g_l1 = criterion_L1(fake_dem, real_dem) * lambda_L1
 
             # 总的生成器损失
-            loss_G = loss_G_GAN + loss_G_L1
+            loss_G = loss_g_gan + loss_g_l1
 
             # 反向传播和优化
             loss_G.backward()
@@ -75,25 +78,25 @@ def main():
             # 判别器对真实图像的预测
             real_data = torch.cat([input_dem, real_dem], dim=1)
             pred_real = netD(real_data)
-            loss_D_real = criterion_GAN(pred_real, valid_label)
+            loss_d_real = criterion_GAN(pred_real, valid_label)
 
             # 判别器对假图像的预测
             fake_data = torch.cat([input_dem, fake_dem.detach()], dim=1)
             pred_fake = netD(fake_data)
             fake_label = torch.zeros_like(pred_fake, device=device)
-            loss_D_fake = criterion_GAN(pred_fake, fake_label)
+            loss_d_fake = criterion_GAN(pred_fake, fake_label)
 
             # 总的判别器损失
-            loss_D = (loss_D_real + loss_D_fake) / 2
+            loss_d = (loss_d_real + loss_d_fake) / 2
 
             # 反向传播和优化
-            loss_D.backward()
+            loss_d.backward()
             optimizer_D.step()
 
             # 打印损失等信息
             if iteration % 10 == 0:
                 print(f"Epoch [{epoch}/{num_epochs}] Iteration [{iteration}/{len(data_loader.train_files)}]: "
-                      f"Loss_D: {loss_D.item():.4f}, Loss_G: {loss_G.item():.4f}")
+                      f"Loss_D: {loss_d.item():.4f}, Loss_G: {loss_G.item():.4f}")
 
 
 def test1():
@@ -116,20 +119,20 @@ def test1():
     gen_input = torch.cat([input_dem, mask_pred], dim=1)  # 输入通道数为 2
 
     # 前向传播生成器
-    netG = Generator().to(device)
+    net_g = Generator().to(device)
     netG.apply(weights_init)
 
     generated_dem = netG(gen_input.to(device))
     print(f"Generated DEM shape: {generated_dem.shape}")  # 应该是 (batch_size, 1, H, W)
 
     # 判别器前向传播
-    netD = PatchDiscriminator(in_channels=2).to(device)
-    netD.apply(weights_init)
+    net_d = PatchDiscriminator(in_channels=2).to(device)
+    net_d.apply(weights_init)
 
     # 拼接输入数据和生成器的输出
     fake_data = torch.cat([input_dem, generated_dem.detach().cpu()], dim=1)
 
-    pred = netD(fake_data.to(device))
+    pred = net_d(fake_data.to(device))
     print(f"Discriminator output shape: {pred.shape}")  # 应该是 (batch_size, 1, H', W')
 
     # 验证前向传播是否正常
@@ -140,7 +143,7 @@ def test1():
 def test2():
     # 创建 DataLoader 实例
     data_loader = DataLoader(
-        dataset_path='E:/dataset/data',  # 修改为您的数据集路径
+        dataset_path='D:/Doc/paper/data/N030E080_N035E085',  # 修改为您的数据集路径
         # dataset_path='D:/Doc/paper/data/N030E080_N035E085',  #
         split=[0.8, 0.1, 0.1],
         device=torch.device('cpu')  # 或者 'cuda' 如果有 GPU
